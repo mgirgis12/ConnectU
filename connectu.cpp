@@ -45,29 +45,48 @@ struct Post {
     }
 };
 
-// TODO: LAB 1 - Linked List
+///////// LAB 1 - Linked List //////////////
+
 class Timeline {
 public:
     Post* head;
     Timeline() : head(nullptr) {}
 
     // Task: Add a new post to the FRONT of the list (O(1))
-    void addPost(int pid, int uid, string content, int likes, long time) {
-        // TODO: LAB 1
+   void addPost(int pid, int uid, string content, int likes, long time) {
+    // Create a new Post node
+    Post* newPost = new Post(pid, uid, content, likes, time);
+
+    // Connect the new post to the current first post
+    newPost->next = head;
+
+    // Move head to the new post (now it's at the front)
+    head = newPost;
+}
 
 
-    }
+    
 
     void printTimeline() {
-        Post* current = head;
-        if (!current) { cout << "  (No posts yet)" << endl; return; }
-        
-        // Task: Traverse the linked list and print content
-        // TODO: LAB 1
-
+    Post* current = head;
+    if (!current) { 
+        cout << "  (No posts yet)" << endl; 
+        return; 
     }
-};
 
+    while (current != nullptr) {
+
+        cout << "  > [ID: " << current->postId << "] "
+             << current->content 
+             << " (" << current->likes << " likes)" << endl;
+
+        current = current->next;
+    }
+}
+};
+////////////// END LAB 1////////////////
+
+    
 // Forward Declaration
 class User;
 
