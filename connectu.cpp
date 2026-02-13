@@ -483,7 +483,7 @@ void showMainMenu() {
         else if (choice == 3) {
             // SAFETY: Commented out to prevent data loss on initial run.
             // Students must uncomment this ONLY when Lab 1 is complete.
-            // saveData(); 
+             saveData(); 
             cout << "Goodbye! " << endl;
         }
     }
