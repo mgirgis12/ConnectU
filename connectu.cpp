@@ -180,9 +180,13 @@ private:
     static const int TABLE_SIZE = 10007; 
     HashNode** table;
 
+    // Polynomial Rolling Hash Function
     unsigned long hashFunction(string key) {
-        // TODO: LAB 2
-        return 0; 
+        unsigned long hash = 0;
+        for (char c : key) {
+            hash = (hash * 31 + c) % TABLE_SIZE;
+        }
+        return hash;
     }
 
 public:
@@ -191,14 +195,41 @@ public:
         for (int i = 0; i < TABLE_SIZE; i++) table[i] = nullptr;
     }
 
-    void put(string key, User* user) { /* TODO: LAB 2 */ }
+    // Insert user into hash table using chaining
+    void put(string key, User* user) {
+    void put(string key, User* user) {
+    unsigned long index = hashFunction(key);
 
-    User* get(string key) {
-        // --- TEMPORARY FALLBACK FOR LAB 1 ---
-        for(User* u : allUsers) {
-            if (u->username == key) return u;
+    HashNode* current = table[index];
+
+    // Check if key already exists
+    while (current != nullptr) {
+        if (current->key == key) {
+            current->value = user;  // Update existing user
+            return;
         }
-        // TODO: LAB 2 - REPLACE ABOVE WITH HASH LOOKUP
+        current = current->next;
+    }
+
+    // If not found, insert new node (chaining)
+    HashNode* newNode = new HashNode(key, user);
+    newNode->next = table[index];
+    table[index] = newNode;
+}
+    }
+
+    // O(1) average lookup
+    User* get(string key) {
+        unsigned long index = hashFunction(key);
+
+        HashNode* current = table[index];
+
+        while (current != nullptr) {
+            if (current->key == key)
+                return current->value;
+            current = current->next;
+        }
+
         return nullptr;
     }
 };
