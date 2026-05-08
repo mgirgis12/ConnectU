@@ -40,9 +40,10 @@ struct Post {
         : postId(pid), userId(uid), content(txt), likes(lk), timestamp(time), next(nullptr) {}
         
     // TODO: LAB 3 - Implement Scoring Logic
-    double getScore() {
-        return 0.0; 
-    }
+   double getScore() {
+    double hoursOld = (time(0) - timestamp) / 3600.0;
+    return (likes * 10) + (1000 / (hoursOld + 1));
+}
 };
 
 ///////// LAB 1 - Linked List //////////////
@@ -108,6 +109,12 @@ public:
     void printInOrder(BSTNode* node);
 
     void addFriend(User* u) { root = insert(root, u); }
+    
+
+// LAB 6 - BST Deletion Functions
+BSTNode* findMin(BSTNode* node);
+BSTNode* deleteNode(BSTNode* node, string username);
+void deleteFriend(string username);
 
     void printFriends() {
         if (root == nullptr) cout << "  (No friends yet)" << endl;
@@ -139,29 +146,133 @@ public:
     
     vector<User*> getFriendsList() { return friends; }
 };
-
-// BST Implementation
-BSTNode* FriendBST::insert(BSTNode* node, User* u) {
-    // TODO: LAB 4
+// LAB 6 - Find the smallest user in a subtree
+BSTNode* FriendBST::findMin(BSTNode* node) {
+    while (node != nullptr && node->left != nullptr) {
+        node = node->left;
+    }
     return node;
 }
-void FriendBST::printInOrder(BSTNode* node) {
-    // TODO: LAB 4
+
+// LAB 6 - Delete a user from the BST
+BSTNode* FriendBST::deleteNode(BSTNode* node, string username) {
+    if (node == nullptr) return nullptr;
+
+    if (username < node->user->username) {
+        node->left = deleteNode(node->left, username);
+    }
+    else if (username > node->user->username) {
+        node->right = deleteNode(node->right, username);
+    }
+    else {
+        if (node->left == nullptr) {
+            BSTNode* temp = node->right;
+            delete node;
+            return temp;
+        }
+        else if (node->right == nullptr) {
+            BSTNode* temp = node->left;
+            delete node;
+            return temp;
+        }
+
+        BSTNode* temp = findMin(node->right);
+        node->user = temp->user;
+        node->right = deleteNode(node->right, temp->user->username);
+    }
+
+    return node;
 }
+
+// LAB 6 - Public delete function
+void FriendBST::deleteFriend(string username) {
+    root = deleteNode(root, username);
+}
+/* BST Implementation  lab 4 */
+BSTNode* FriendBST::insert(BSTNode* node, User* u) {
+    if (node == nullptr) {
+        return new BSTNode(u);
+    }
+
+    if (u->username < node->user->username) {
+        node->left = insert(node->left, u);
+    }
+    else if (u->username > node->user->username) {
+        node->right = insert(node->right, u);
+    }
+
+    return node;
+}
+
+void FriendBST::printInOrder(BSTNode* node) {
+    if (node == nullptr) return;
+
+    printInOrder(node->left);
+    cout << "  > @" << node->user->username << endl;
+    printInOrder(node->right);
+}
+//end of lab 4
 
 // TODO: LAB 3 - Max Heap
 class FeedHeap {
 private:
-    Post* heap[1000]; 
+    Post* heap[1000];
     int size;
 
-    void heapifyDown(int index) { /* TODO: LAB 3 */ }
-    void heapifyUp(int index) { /* TODO: LAB 3 */ }
+    void heapifyUp(int index) {
+        while (index > 0) {
+            int parent = (index - 1) / 2;
+
+            if (heap[parent]->getScore() >= heap[index]->getScore())
+                break;
+
+            swap(heap[parent], heap[index]);
+            index = parent;
+        }
+    }
+
+    void heapifyDown(int index) {
+        while (true) {
+            int left = 2 * index + 1;
+            int right = 2 * index + 2;
+            int largest = index;
+
+            if (left < size && heap[left]->getScore() > heap[largest]->getScore())
+                largest = left;
+
+            if (right < size && heap[right]->getScore() > heap[largest]->getScore())
+                largest = right;
+
+            if (largest == index)
+                break;
+
+            swap(heap[index], heap[largest]);
+            index = largest;
+        }
+    }
 
 public:
     FeedHeap() : size(0) {}
-    void push(Post* p) { /* TODO: LAB 3 */ }
-    Post* popMax() { return nullptr; /* TODO: LAB 3 */ }
+
+    void push(Post* p) {
+        heap[size] = p;
+        heapifyUp(size);
+        size++;
+    }
+
+    Post* popMax() {
+        if (size == 0)
+            return nullptr;
+
+        Post* top = heap[0];
+        heap[0] = heap[size - 1];
+        size--;
+
+        heapifyDown(0);
+
+        return top;
+    }
+
     bool isEmpty() { return size == 0; }
 };
 
@@ -197,25 +308,23 @@ public:
 
     // Insert user into hash table using chaining
     void put(string key, User* user) {
-    void put(string key, User* user) {
-    unsigned long index = hashFunction(key);
+        unsigned long index = hashFunction(key);
 
-    HashNode* current = table[index];
+        HashNode* current = table[index];
 
-    // Check if key already exists
-    while (current != nullptr) {
-        if (current->key == key) {
-            current->value = user;  // Update existing user
-            return;
+        // Check if key already exists
+        while (current != nullptr) {
+            if (current->key == key) {
+                current->value = user;
+                return;
+            }
+            current = current->next;
         }
-        current = current->next;
-    }
 
-    // If not found, insert new node (chaining)
-    HashNode* newNode = new HashNode(key, user);
-    newNode->next = table[index];
-    table[index] = newNode;
-}
+        // Insert new node at front (chaining)
+        HashNode* newNode = new HashNode(key, user);
+        newNode->next = table[index];
+        table[index] = newNode;
     }
 
     // O(1) average lookup
@@ -298,11 +407,91 @@ void addFriendship(User* requester, User* target) {
     target->addFriend(requester);
     cout << "\n[SUCCESS] You are now friends with @" << target->username << endl;
 }
+// LAB 6 - Remove Friend using BST Deletion
+void removeFriend(User* currentUser) {
+    string friendName;
 
-// TODO: LAB 5 - Breadth First Search
+    cout << "Enter username to remove: ";
+    cin >> friendName;
+
+    User* target = userMap.get(friendName);
+
+    if (target == nullptr) {
+        cout << "User not found." << endl;
+        return;
+    }
+
+    bool found = false;
+
+    // Remove target from current user's friends vector
+    for (int i = 0; i < currentUser->friends.size(); i++) {
+        if (currentUser->friends[i]->username == friendName) {
+            currentUser->friends.erase(currentUser->friends.begin() + i);
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        cout << "That user is not in your friends list." << endl;
+        return;
+    }
+
+    // Remove current user from target user's friends vector
+    for (int i = 0; i < target->friends.size(); i++) {
+        if (target->friends[i]->username == currentUser->username) {
+            target->friends.erase(target->friends.begin() + i);
+            break;
+        }
+    }
+
+    // Remove from both BSTs
+    currentUser->friendTree.deleteFriend(friendName);
+    target->friendTree.deleteFriend(currentUser->username);
+
+    cout << "\n[SUCCESS] Removed @" << friendName << " from your friends list." << endl;
+}
+
+//TODO: LAB 5 - Breadth First Search
 void recommendFriends(User* startUser) {
-    cout << "\n[GRAPH ANALYSIS] Finding friends of friends..." << endl;
-    // TODO: LAB 5
+    cout << "\n[GRAPH ANALYSIS] Friend Recommendations:\n";
+
+    set<int> visited;
+    queue<User*> q;
+
+    // Mark yourself as visited
+    visited.insert(startUser->userId);
+
+    // Add direct friends to visited (so we don't recommend them)
+    for (User* f : startUser->friends) {
+        visited.insert(f->userId);
+        q.push(f); // start BFS from friends
+    }
+
+    set<string> recommendations;
+
+    // BFS
+    while (!q.empty()) {
+        User* current = q.front();
+        q.pop();
+
+        for (User* neighbor : current->friends) {
+            if (visited.find(neighbor->userId) == visited.end()) {
+                // Not visited → recommend
+                recommendations.insert(neighbor->username);
+                visited.insert(neighbor->userId);
+            }
+        }
+    }
+
+    // Print results
+    if (recommendations.empty()) {
+        cout << "  No recommendations found.\n";
+    } else {
+        for (const string& name : recommendations) {
+            cout << "  > @" << name << endl;
+        }
+    }
 }
 
 // ==========================================
@@ -420,6 +609,8 @@ void showUserDashboard(User* currentUser) {
         cout << "5. View Friends Sorted (Lab 4)" << endl;
         cout << "6. Get Friend Recommendations (Lab 5)" << endl;
         cout << "7. Logout" << endl;
+        // Lab 6
+        cout << "8. Remove Friend (Lab 6)" << endl;
         cout << "Select >> ";
         cin >> choice;
 
@@ -481,6 +672,10 @@ void showUserDashboard(User* currentUser) {
         else if (choice == 6) {
              recommendFriends(currentUser);
         }
+        // Lab 6 
+        else if (choice == 8) {
+             removeFriend(currentUser);
+        }   
         else if (choice == 7) {
             cout << "Logging out..." << endl;
         }
